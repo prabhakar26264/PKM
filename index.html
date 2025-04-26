@@ -21,3 +21,158 @@
   <script src="script.js"></script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EMI Calculator with Month Names</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f4f4f4;
+    }
+    .highlight {
+      background-color: #f08080; /* Light red for prepayment month */
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>EMI Calculator with Month Names</h1>
+    <label for="amount">Loan Amount:</label>
+    <input type="number" id="amount" placeholder="Enter loan amount">
+    <label for="rate">Annual Interest Rate (%):</label>
+    <input type="number" id="rate" placeholder="Enter interest rate">
+    <label for="tenure">Tenure (Years):</label>
+    <input type="number" id="tenure" placeholder="Enter tenure in years">
+    <label for="emiStartDate">EMI Start Date:</label>
+    <input type="date" id="emiStartDate">
+    <label for="prepayment">Prepayment Amount (Optional):</label>
+    <input type="number" id="prepayment" placeholder="Enter prepayment amount (Optional)">
+    <label for="prepaymentDate">Prepayment Date (Optional):</label>
+    <input type="date" id="prepaymentDate" placeholder="Select prepayment date (Optional)">
+    <button onclick="calculateEMI()">Calculate EMI</button>
+    <div id="results"></div>
+    <table id="schedule"></table>
+  </div>
+
+  <script>
+    function calculateEMI() {
+      const amount = parseFloat(document.getElementById('amount').value);
+      const rate = parseFloat(document.getElementById('rate').value) / 12 / 100;
+      const tenureYears = parseInt(document.getElementById('tenure').value);
+      const emiStartDate = new Date(document.getElementById('emiStartDate').value);
+      const prepayment = parseFloat(document.getElementById('prepayment').value || 0);
+      const prepaymentDateInput = document.getElementById('prepaymentDate').value;
+      const prepaymentDate = prepaymentDateInput ? new Date(prepaymentDateInput) : null;
+
+      if (isNaN(amount) || isNaN(rate) || isNaN(tenureYears) || isNaN(emiStartDate.getTime())) {
+        alert('Please enter valid inputs');
+        return;
+      }
+
+      const tenureMonths = tenureYears * 12;
+      const emi = (amount * rate * Math.pow(1 + rate, tenureMonths)) / (Math.pow(1 + rate, tenureMonths) - 1);
+      let balance = amount;
+      const results = [];
+      let totalInterest = 0;
+
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
+      ];
+
+      for (let i = 0; i < tenureMonths; i++) {
+        const interest = balance * rate;
+        const principal = emi - interest;
+
+        const emiDate = new Date(emiStartDate);
+        emiDate.setMonth(emiDate.getMonth() + i);
+
+        if (prepaymentDate && emiDate.toDateString() === prepaymentDate.toDateString()) {
+          balance -= prepayment;
+        }
+
+        balance -= principal;
+        totalInterest += interest;
+
+        results.push({
+          monthName: monthNames[emiDate.getMonth()],
+          year: emiDate.getFullYear(),
+          date: emiDate.toDateString(),
+          emi: emi.toFixed(2),
+          principal: principal.toFixed(2),
+          interest: interest.toFixed(2),
+          balance: balance > 0 ? balance.toFixed(2) : 0,
+          highlight: prepaymentDate && emiDate.toDateString() === prepaymentDate.toDateString()
+        });
+
+        if (balance <= 0) break;
+      }
+
+      const totalPayable = emi * results.length + (prepayment || 0);
+      const totalMonths = results.length;
+      const resultHTML = `
+        <p><strong>Monthly EMI:</strong> ${emi.toFixed(2)}</p>
+        <p><strong>Total Interest:</strong> ${totalInterest.toFixed(2)}</p>
+        <p><strong>Total Payable:</strong> ${totalPayable.toFixed(2)}</p>
+        <p><strong>Number of EMI Months:</strong> ${totalMonths}</p>
+        <h2>Loan Schedule:</h2>
+      `;
+      document.getElementById('results').innerHTML = resultHTML;
+
+      let scheduleHTML = `
+        <tr>
+          <th>Month</th>
+          <th>Year</th>
+          <th>Date</th>
+          <th>EMI</th>
+          <th>Principal</th>
+          <th>Interest</th>
+          <th>Balance</th>
+        </tr>
+      `;
+
+      results.forEach(row => {
+        scheduleHTML += `
+          <tr class="${row.highlight ? 'highlight' : ''}">
+            <td>${row.monthName}</td>
+            <td>${row.year}</td>
+            <td>${row.date}</td>
+            <td>${row.emi}</td>
+            <td>${row.principal}</td>
+            <td>${row.interest}</td>
+            <td>${row.balance}</td>
+          </tr>
+        `;
+      });
+
+      document.getElementById('schedule').innerHTML = scheduleHTML;
+    }
+  </script>
+</body>
+</html>
