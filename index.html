@@ -11,7 +11,7 @@
     <h1>Welcome to PKM</h1>
   </header>
   <main>
-    <p>This is a simple webpage named PKM-26264  EMI Calculator with Prepayment Suggestion created just for you!</p>
+    <p>This is a simple webpage named PKM-26264  EMI Calculator with Prepayment Suggestion, PDF Download created just for you!</p>
     <button id="clickMeButton">Click Me</button>
     <p id="message" style="margin-top: 20px;"></p>
   </main>
@@ -26,9 +26,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EMI Calculator with Prepayment Suggestion & Responsive Design</title>
+  <title>EMI Calculator with Prepayment Suggestion, PDF Download & Responsive Design</title>
   <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- jsPDF CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -86,7 +88,6 @@
       height: 400px;
       margin: 20px auto;
     }
-
     /* Responsive Styles for Tablets and Mobile */
     @media (max-width: 768px) {
       .container {
@@ -104,7 +105,6 @@
         height: 300px;
       }
     }
-    
     @media (max-width: 480px) {
       input, button {
         font-size: 12px;
@@ -115,6 +115,11 @@
       #chartContainer {
         height: 250px;
       }
+    }
+    /* Style for the PDF download button */
+    #downloadPDF {
+      background: #28a745;
+      margin-top: 20px;
     }
   </style>
 </head>
@@ -160,6 +165,9 @@
     </div>
     
     <table id="schedule"></table>
+    
+    <!-- Download PDF button -->
+    <button id="downloadPDF" onclick="downloadPDF()">Download PDF</button>
   </div>
 
   <script>
@@ -189,7 +197,8 @@
       // Full term as per input.
       const tenureMonths = tenureYears * 12;
       // Fixed EMI calculated assuming no prepayment.
-      const emi = (amount * rate * Math.pow(1 + rate, tenureMonths)) / (Math.pow(1 + rate, tenureMonths) - 1);
+      const emi = (amount * rate * Math.pow(1 + rate, tenureMonths)) /
+                  (Math.pow(1 + rate, tenureMonths) - 1);
       let balance = amount;
       const results = [];
       let totalInterestSim = 0; // Accumulate total interest during simulation.
@@ -278,9 +287,9 @@
         // Assume the entire prepayment is made at the beginning.
         // Desired new EMI months = tenureMonths - desiredMonthsSave.
         const targetMonths = tenureMonths - desiredMonthsSave;
-        // For a fixed EMI and monthly rate r, the remaining principal after prepayment to finish in targetMonths is:
+        // For a fixed EMI and monthly rate r, the remaining principal needed to finish in targetMonths is:
         const remainingPrincipalNeeded = (emi / rate) * (1 - 1 / Math.pow(1 + rate, targetMonths));
-        // Suggested prepayment is then roughly:
+        // Suggested prepayment is roughly:
         const suggestedPrepayment = amount - remainingPrincipalNeeded;
         if (suggestedPrepayment > 0) {
           prepaymentSuggestionText = `<p style="color: blue;"><strong>Prepayment Suggestion:</strong> To reduce your EMI term by ${desiredMonthsSave} months (to ${targetMonths} months total), you should prepay approximately ${suggestedPrepayment.toFixed(2)}.</p>`;
@@ -290,17 +299,17 @@
       }
       
       // Build the results summary.
-      let resultHTML = `<p><strong>Monthly EMI:</strong> ${emi.toFixed(2)}</p>`;
-      resultHTML += `<p><strong>Total Interest Without Prepayment:</strong> ${interestWithoutPrepayment.toFixed(2)}</p>`;
-      resultHTML += `<p><strong>Total Interest With Prepayment:</strong> ${totalInterestSim.toFixed(2)}</p>`;
-      resultHTML += `<p style="color: green;"><strong>Interest Saved Due to Prepayment:</strong> ${interestSaved.toFixed(2)}</p>`;
-      resultHTML += `<p><strong>Interest Paid AFTER Prepayment:</strong> ${interestAfterSim.toFixed(2)}</p>`;
-      resultHTML += `<p><strong>Total EMI Months Without Prepayment:</strong> ${tenureMonths}</p>`;
-      resultHTML += `<p><strong>Total EMI Months With Prepayment:</strong> ${results.length}</p>`;
-      resultHTML += `<p style="color: green;"><strong>EMI Months Saved:</strong> ${monthsSaved}</p>`;
-      resultHTML += prepaymentSuggestionText;
-      resultHTML += `<h2>Loan Schedule:</h2>`;
-      document.getElementById('results').innerHTML = resultHTML;
+      let summaryHTML = `<p><strong>Monthly EMI:</strong> ${emi.toFixed(2)}</p>`;
+      summaryHTML += `<p><strong>Total Interest Without Prepayment:</strong> ${interestWithoutPrepayment.toFixed(2)}</p>`;
+      summaryHTML += `<p><strong>Total Interest With Prepayment:</strong> ${totalInterestSim.toFixed(2)}</p>`;
+      summaryHTML += `<p style="color: green;"><strong>Interest Saved Due to Prepayment:</strong> ${interestSaved.toFixed(2)}</p>`;
+      summaryHTML += `<p><strong>Interest Paid AFTER Prepayment:</strong> ${interestAfterSim.toFixed(2)}</p>`;
+      summaryHTML += `<p><strong>Total EMI Months Without Prepayment:</strong> ${tenureMonths}</p>`;
+      summaryHTML += `<p><strong>Total EMI Months With Prepayment:</strong> ${results.length}</p>`;
+      summaryHTML += `<p style="color: green;"><strong>EMI Months Saved:</strong> ${monthsSaved}</p>`;
+      summaryHTML += prepaymentSuggestionText;
+      summaryHTML += `<h2>Loan Schedule:</h2>`;
+      document.getElementById('results').innerHTML = summaryHTML;
       
       // Build the EMI schedule table with an extra "Prepayment" column.
       let scheduleHTML = `
@@ -318,7 +327,7 @@
       // Totals for summary row.
       let totalEMI = 0, totalPrincipal = 0, totalInterest = 0, totalPrepayment = 0;
       
-      results.forEach(row => {
+      results.forEach((row) => {
         scheduleHTML += `
           <tr class="${row.prepayment !== "" ? 'highlight' : ''}">
             <td>${row.monthName}</td>
@@ -388,7 +397,7 @@
       const ctx = document.getElementById("doughnutChart").getContext("2d");
       
       // Destroy previous chart if exists.
-      if(window.myDoughnutChart instanceof Chart) {
+      if (window.myDoughnutChart instanceof Chart) {
         window.myDoughnutChart.destroy();
       }
       
@@ -399,15 +408,24 @@
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: {
-              position: "bottom"
-            },
-            title: {
-              display: true,
-              text: "Comparison of Repayment Metrics"
-            }
+            legend: { position: "bottom" },
+            title: { display: true, text: "Comparison of Repayment Metrics" }
           }
         }
+      });
+    }
+    
+    // Function to generate and download PDF file using jsPDF.
+    function downloadPDF() {
+      const { jsPDF } = window.jspdf; 
+      const doc = new jsPDF('p', 'pt', 'a4');
+      // Use the container content to generate the PDF.
+      doc.html(document.querySelector('.container'), {
+        callback: function(doc) {
+          doc.save('loan_report.pdf');
+        },
+        x: 10,
+        y: 10
       });
     }
   </script>
