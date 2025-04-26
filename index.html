@@ -416,18 +416,438 @@
     }
     
     // Function to generate and download PDF file using jsPDF.
-    function downloadPDF() {
-      const { jsPDF } = window.jspdf; 
-      const doc = new jsPDF('p', 'pt', 'a4');
-      // Use the container content to generate the PDF.
-      doc.html(document.querySelector('.container'), {
-        callback: function(doc) {
-          doc.save('loan_report.pdf');
-        },
-        x: 10,
-        y: 10
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PKM</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Welcome to PKM</h1>
+  </header>
+  <main>
+    <p>This is a simple webpage named PKM-26264  EMI Calculator with Prepayment Suggestion, PDF Download created just for you!</p>
+    <button id="clickMeButton">Click Me</button>
+    <p id="message" style="margin-top: 20px;"></p>
+  </main>
+  <footer>
+    <p>© 2025 PKM. All rights reserved.</p>
+  </footer>
+  <script src="script.js"></script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EMI Calculator with Prepayment Suggestion, PDF Download & Responsive Design</title>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- jsPDF CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      padding: 0;
+      background: #fafafa;
+    }
+    .container {
+      max-width: 750px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
+    }
+    h1 {
+      text-align: center;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-size: 16px;
+    }
+    button {
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 16px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #f4f4f4;
+    }
+    .highlight {
+      background-color: #f08080;
+    }
+    /* Chart container styling */
+    #chartContainer {
+      width: 400px;
+      height: 400px;
+      margin: 20px auto;
+    }
+    /* Responsive Styles for Tablets and Mobile */
+    @media (max-width: 768px) {
+      .container {
+        max-width: 95%;
+        padding: 10px;
+      }
+      input, button {
+        font-size: 14px;
+      }
+      table, th, td {
+        font-size: 14px;
+      }
+      #chartContainer {
+        width: 90%;
+        height: 300px;
+      }
+    }
+    @media (max-width: 480px) {
+      input, button {
+        font-size: 12px;
+      }
+      table, th, td {
+        font-size: 12px;
+      }
+      #chartContainer {
+        height: 250px;
+      }
+    }
+    /* Style for the PDF download button */
+    #downloadPDF {
+      background: #28a745;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>EMI Calculator with Prepayment Suggestion</h1>
+    
+    <label for="amount">Loan Amount:</label>
+    <input type="number" id="amount" placeholder="Enter loan amount" />
+    
+    <label for="rate">Annual Interest Rate (%):</label>
+    <input type="number" id="rate" placeholder="Enter interest rate" />
+    
+    <label for="tenure">Tenure (Years):</label>
+    <input type="number" id="tenure" placeholder="Enter tenure in years" />
+    
+    <label for="emiStartDate">EMI Start Date:</label>
+    <input type="date" id="emiStartDate" />
+    
+    <!-- Optional field for desired EMI term saving -->
+    <label for="desiredMonthsSave">Desired EMI Months Saving (Optional):</label>
+    <input type="number" id="desiredMonthsSave" placeholder="Enter EMI months to save (Optional)" />
+    
+    <!-- First Prepayment Entry -->
+    <label for="prepayment">First Prepayment Amount (Optional):</label>
+    <input type="number" id="prepayment" placeholder="Enter first prepayment amount (Optional)" />
+    <label for="prepaymentDate">First Prepayment Date (Optional):</label>
+    <input type="date" id="prepaymentDate" placeholder="Select first prepayment date (Optional)" />
+    
+    <!-- Second Prepayment Entry (Optional) -->
+    <label for="prepayment2">Second Prepayment Amount (Optional):</label>
+    <input type="number" id="prepayment2" placeholder="Enter second prepayment amount (Optional)" />
+    <label for="prepaymentDate2">Second Prepayment Date (Optional):</label>
+    <input type="date" id="prepaymentDate2" placeholder="Select second prepayment date (Optional)" />
+    
+    <button onclick="calculateEMI()">Calculate EMI</button>
+    
+    <div id="results"></div>
+    
+    <!-- Doughnut Chart Container (shown above the schedule table) -->
+    <div id="chartContainer">
+      <canvas id="doughnutChart"></canvas>
+    </div>
+    
+    <table id="schedule"></table>
+    
+    <!-- Download PDF button -->
+    <button id="downloadPDF" onclick="downloadPDF()">Download PDF</button>
+  </div>
+
+  <script>
+    function calculateEMI() {
+      // Read basic loan details.
+      const amount = parseFloat(document.getElementById('amount').value);
+      const rate = parseFloat(document.getElementById('rate').value) / 12 / 100;
+      const tenureYears = parseInt(document.getElementById('tenure').value);
+      const emiStartDate = new Date(document.getElementById('emiStartDate').value);
+      const desiredMonthsSave = parseInt(document.getElementById('desiredMonthsSave').value) || 0;
+      
+      // First prepayment event.
+      const prepayment1 = parseFloat(document.getElementById('prepayment').value || 0);
+      const prepaymentDateInput1 = document.getElementById('prepaymentDate').value;
+      const prepaymentDate1 = prepaymentDateInput1 ? new Date(prepaymentDateInput1) : null;
+      
+      // Second prepayment event.
+      const prepayment2 = parseFloat(document.getElementById('prepayment2').value || 0);
+      const prepaymentDateInput2 = document.getElementById('prepaymentDate2').value;
+      const prepaymentDate2 = prepaymentDateInput2 ? new Date(prepaymentDateInput2) : null;
+      
+      if (isNaN(amount) || isNaN(rate) || isNaN(tenureYears) || isNaN(emiStartDate.getTime())) {
+        alert('Please enter valid inputs');
+        return;
+      }
+      
+      // Full term as per input.
+      const tenureMonths = tenureYears * 12;
+      // Fixed EMI calculated assuming no prepayment.
+      const emi = (amount * rate * Math.pow(1 + rate, tenureMonths)) /
+                  (Math.pow(1 + rate, tenureMonths) - 1);
+      let balance = amount;
+      const results = [];
+      let totalInterestSim = 0; // Accumulate total interest during simulation.
+      const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      
+      // Prepare an array of prepayment events.
+      let prepaymentEvents = [];
+      if (prepayment1 > 0 && prepaymentDate1) {
+        prepaymentEvents.push({ date: prepaymentDate1, amount: prepayment1, applied: false });
+      }
+      if (prepayment2 > 0 && prepaymentDate2) {
+        prepaymentEvents.push({ date: prepaymentDate2, amount: prepayment2, applied: false });
+      }
+      // Sort events by date.
+      prepaymentEvents.sort((a, b) => a.date - b.date);
+      
+      // Simulate month-by-month amortization.
+      for (let i = 0; i < tenureMonths; i++) {
+        let emiDate = new Date(emiStartDate);
+        emiDate.setMonth(emiDate.getMonth() + i);
+        const interest = balance * rate;
+        const principal = emi - interest;
+        let prepaymentForThisMonth = "";
+        
+        // Check and apply any scheduled prepayment(s) for this EMI month.
+        for (let evt of prepaymentEvents) {
+          if (!evt.applied && emiDate.toDateString() === evt.date.toDateString()) {
+            balance -= evt.amount;
+            evt.applied = true;
+            prepaymentForThisMonth += evt.amount.toFixed(2) + " ";
+          }
+        }
+        balance -= principal; // Deduct principal repayment.
+        totalInterestSim += interest;
+        
+        results.push({
+          monthName: monthNames[emiDate.getMonth()],
+          year: emiDate.getFullYear(),
+          emi: emi.toFixed(2),
+          principal: principal.toFixed(2),
+          interest: interest.toFixed(2),
+          interestValue: interest, // For later summing.
+          prepayment: prepaymentForThisMonth,
+          balance: balance > 0 ? balance.toFixed(2) : 0,
+          emiDate: emiDate
+        });
+        
+        if (balance <= 0) break;
+      }
+      
+      // Determine the index of the earliest prepayment event (if any).
+      let earliestPrepaymentIndex = Infinity;
+      for (let i = 0; i < results.length; i++) {
+        if (results[i].prepayment !== "") {
+          earliestPrepaymentIndex = Math.min(earliestPrepaymentIndex, i);
+        }
+      }
+      if (earliestPrepaymentIndex === Infinity) earliestPrepaymentIndex = -1;
+      
+      // Sum interest before the earliest prepayment.
+      let interestBeforeSim = 0;
+      for (let i = 0; i < results.length; i++) {
+        if (i < earliestPrepaymentIndex || earliestPrepaymentIndex === -1) {
+          interestBeforeSim += results[i].interestValue;
+        }
+      }
+      let interestAfterSim = totalInterestSim - interestBeforeSim;
+      
+      // Without prepayment, total interest would be:
+      const interestWithoutPrepayment = (emi * tenureMonths) - amount;
+      // Interest saved due to prepayment:
+      const interestSaved = interestWithoutPrepayment - totalInterestSim;
+      // Total amount payable without prepayment.
+      const totalAmountWithoutPrepayment = emi * tenureMonths;
+      // Total payable from simulation (with prepayment(s)).
+      const totalAmountWithPrepayment =
+        emi * results.length + prepaymentEvents.reduce((sum, evt) => sum + (evt.applied ? evt.amount : 0), 0);
+      const monthsSaved = tenureMonths - results.length;
+      
+      // --- Prepayment suggestion if the user wants to reduce EMI months ---
+      let prepaymentSuggestionText = "";
+      if (desiredMonthsSave > 0 && desiredMonthsSave < tenureMonths) {
+        // Assume the entire prepayment is made at the beginning.
+        // Desired new EMI months = tenureMonths - desiredMonthsSave.
+        const targetMonths = tenureMonths - desiredMonthsSave;
+        // For a fixed EMI and monthly rate r, the remaining principal needed to finish in targetMonths is:
+        const remainingPrincipalNeeded = (emi / rate) * (1 - 1 / Math.pow(1 + rate, targetMonths));
+        // Suggested prepayment is roughly:
+        const suggestedPrepayment = amount - remainingPrincipalNeeded;
+        if (suggestedPrepayment > 0) {
+          prepaymentSuggestionText = `<p style="color: blue;"><strong>Prepayment Suggestion:</strong> To reduce your EMI term by ${desiredMonthsSave} months (to ${targetMonths} months total), you should prepay approximately ${suggestedPrepayment.toFixed(2)}.</p>`;
+        } else {
+          prepaymentSuggestionText = `<p style="color: blue;"><strong>Prepayment Suggestion:</strong> No additional prepayment is necessary to achieve this EMI term reduction.</p>`;
+        }
+      }
+      
+      // Build the results summary.
+      let summaryHTML = `<p><strong>Monthly EMI:</strong> ${emi.toFixed(2)}</p>`;
+      summaryHTML += `<p><strong>Total Interest Without Prepayment:</strong> ${interestWithoutPrepayment.toFixed(2)}</p>`;
+      summaryHTML += `<p><strong>Total Interest With Prepayment:</strong> ${totalInterestSim.toFixed(2)}</p>`;
+      summaryHTML += `<p style="color: green;"><strong>Interest Saved Due to Prepayment:</strong> ${interestSaved.toFixed(2)}</p>`;
+      summaryHTML += `<p><strong>Interest Paid AFTER Prepayment:</strong> ${interestAfterSim.toFixed(2)}</p>`;
+      summaryHTML += `<p><strong>Total EMI Months Without Prepayment:</strong> ${tenureMonths}</p>`;
+      summaryHTML += `<p><strong>Total EMI Months With Prepayment:</strong> ${results.length}</p>`;
+      summaryHTML += `<p style="color: green;"><strong>EMI Months Saved:</strong> ${monthsSaved}</p>`;
+      summaryHTML += prepaymentSuggestionText;
+      summaryHTML += `<h2>Loan Schedule:</h2>`;
+      document.getElementById('results').innerHTML = summaryHTML;
+      
+      // Build the EMI schedule table with an extra "Prepayment" column.
+      let scheduleHTML = `
+        <tr>
+          <th>Month</th>
+          <th>Year</th>
+          <th>EMI</th>
+          <th>Principal</th>
+          <th>Interest</th>
+          <th>Prepayment</th>
+          <th>Balance</th>
+        </tr>
+      `;
+      
+      // Totals for summary row.
+      let totalEMI = 0, totalPrincipal = 0, totalInterest = 0, totalPrepayment = 0;
+      
+      results.forEach((row) => {
+        scheduleHTML += `
+          <tr class="${row.prepayment !== "" ? 'highlight' : ''}">
+            <td>${row.monthName}</td>
+            <td>${row.year}</td>
+            <td>${row.emi}</td>
+            <td>${row.principal}</td>
+            <td>${row.interest}</td>
+            <td>${row.prepayment}</td>
+            <td>${row.balance}</td>
+          </tr>
+        `;
+        totalEMI += parseFloat(row.emi);
+        totalPrincipal += parseFloat(row.principal);
+        totalInterest += parseFloat(row.interest);
+        if (row.prepayment.trim() !== "") {
+          row.prepayment.trim().split(" ").forEach(val => {
+            totalPrepayment += parseFloat(val);
+          });
+        }
+      });
+      
+      // Append totals row.
+      scheduleHTML += `
+        <tr style="font-weight: bold; background-color: #e0e0e0;">
+          <td colspan="2">TOTAL</td>
+          <td>${totalEMI.toFixed(2)}</td>
+          <td>${totalPrincipal.toFixed(2)}</td>
+          <td>${totalInterest.toFixed(2)}</td>
+          <td>${totalPrepayment.toFixed(2)}</td>
+          <td>-</td>
+        </tr>
+      `;
+      
+      document.getElementById('schedule').innerHTML = scheduleHTML;
+      
+      // --- Draw the doughnut chart ---
+      const chartData = {
+        labels: [
+          "Total Interest Without Prepayment",
+          "Total Interest With Prepayment",
+          "Total Amount Without Prepayment",
+          "Total Amount With Prepayment"
+        ],
+        datasets: [{
+          data: [
+            interestWithoutPrepayment,
+            totalInterestSim,
+            totalAmountWithoutPrepayment,
+            totalAmountWithPrepayment
+          ],
+          backgroundColor: [
+            "rgba(255, 99, 132, 0.6)",
+            "rgba(54, 162, 235, 0.6)",
+            "rgba(255, 206, 86, 0.6)",
+            "rgba(75, 192, 192, 0.6)"
+          ],
+          borderColor: [
+            "rgba(255, 99, 132, 1)",
+            "rgba(54, 162, 235, 1)",
+            "rgba(255, 206, 86, 1)",
+            "rgba(75, 192, 192, 1)"
+          ],
+          borderWidth: 1
+        }]
+      };
+      
+      const ctx = document.getElementById("doughnutChart").getContext("2d");
+      
+      // Destroy previous chart if exists.
+      if (window.myDoughnutChart instanceof Chart) {
+        window.myDoughnutChart.destroy();
+      }
+      
+      window.myDoughnutChart = new Chart(ctx, {
+        type: "doughnut",
+        data: chartData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "bottom" },
+            title: { display: true, text: "Comparison of Repayment Metrics" }
+          }
+        }
       });
     }
+    
+    // Function to generate and download PDF file using jsPDF.
+   function downloadPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'pt', 'a4');
+  // Use the promise-based approach for the html() method.
+  doc.html(document.querySelector('.container')).then(() => {
+    doc.save('loan_report.pdf');
+  }).catch(err => {
+    console.error("Error generating PDF: ", err);
+    alert("An error occurred while generating the PDF. Please check the console for details.");
+  });
+}
+  </script>
+</body>
+</html>
   </script>
 </body>
 </html>
